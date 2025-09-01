@@ -99,9 +99,6 @@ ker_est_neigh <- function(t,X,k){
 sim_pop_text <- function(a,b,c,text,init_size,n=200){
   pop_init <- population(data.frame( birth = rep(0, init_size), 
                                      death = NA))
-  #birth = mk_event_individual(type = 'birth', intensity_code = '
-  #{result = 0;}'
-  #)
   death = mk_event_individual(type = 'death', 
                               intensity_code =text
   )
