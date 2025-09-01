@@ -86,6 +86,34 @@ ker_est_neigh <- function(t,X,k){
 }
 #########Simulation function#############
 #'Returns the death time for a population of size init_size in a one phase model
+#'with an exponential hazard rate a+bexp(c*t)
+#'@param a the first parameter in the hazard rate
+#'@param b the second parameter
+#'@param c the third parameter
+#'@param init_size the population size
+#'@param n the time of simulation divided by 10
+#'@returns an array of death times 
+sim_pop_simple <- function(a,b,c,init_size,n=200){
+  pop_init <- population(data.frame( birth = rep(0, init_size), 
+                                     death = NA)) #initial pop
+  death = mk_event_individual(type = 'death', 
+                              intensity_code ="{result = a+b*exp(c*I.age(t));}"
+  )
+  params =  list('a'=a,'b'=b,'c'=c) 
+  birth_death <- mk_model(characteristics = get_characteristics(pop_init),
+                          events = list(death),
+                          parameters = params)
+  sim_out <- popsim(model = birth_death,
+                    initial_population = pop_init,
+                    events_bounds = c(
+                      'death' = 1),
+                    parameters = params,
+                    time = (0:n)*10)
+  return(sim_out$population[[n]]$death)
+}
+
+
+#'Returns the death time for a population of size init_size in a one phase model
 #'with a hazard rate defined by three different parameters a,b,c whose expression
 #'is given in text of the form '{result = expression;}' 
 #'@param a the first parameter in the hazard rate
@@ -459,16 +487,16 @@ MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=
     MISE_cv_0 = rep(0,reps)                
     for (i in 1:reps){ 
       RES = minimax_global(a1,b1,c1,hazard , m ,  Grid, Bg4,i,kappa_2, lambda,epsilon)
-      Bopt_g4= RES$B #chosen bandwidth
-      Ttest_g4 = RES$T #simulated data
-      CV4 =crossval(sort(Ttest_g4),BW_CV,ker_est_gamma_c,0)
-      Bopt_cv4 = BW_CV[which.min(CV4)]
-      res_adapt4 = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g4,Bopt_g4)))
-      res_CV4 = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g4,Bopt_cv4)))
-      MISE_mx_g[i] =  sum((res_adapt4-th_haz)^2)/length(th_haz)
-      MISE_mx_g0[i] =   sum((res_adapt4[1]-th_haz[1])^2)
-      MISE_cv[i]  = sum((res_CV4-th_haz)^2)/length(th_haz)
-      MISE_cv_0[i] = sum((res_CV4[1]-th_haz[1])^2)    
+      Bopt_g= RES$B #chosen bandwidth
+      Ttest_g = RES$T #simulated data
+      CV =crossval(sort(Ttest_g),BW_CV,ker_est_gamma_c,0)
+      Bopt_cv = BW_CV[which.min(CV)]
+      res_adapt = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_g)))
+      res_CV = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_cv)))
+      MISE_mx_g[i] =  sum((res_adapt-th_haz)^2)/length(th_haz)
+      MISE_mx_g0[i] =   sum((res_adapt[1]-th_haz[1])^2)
+      MISE_cv[i]  = sum((res_CV-th_haz)^2)/length(th_haz)
+      MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2)    
     }
     return(list('mx_g' = MISE_mx_g, 'mx_g0'= MISE_mx_g0,'cv'=MISE_cv, 'cv_0'=MISE_cv_0))
   })
@@ -495,14 +523,14 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
     MISE_nn_0 = rep(0,reps) 
     for (i in 1:reps){
       Ttest = sim_pop_simple(a1,b1,c1,m)
-      CV4 =crossval(sort(Ttest),BW_CV,ker_estg,0)
-      Bopt_cv4 = BW_CV[which.min(CV4)]
+      CV =crossval(sort(Ttest),BW_CV,ker_estg,0)
+      Bopt_cv = BW_CV[which.min(CV)]
       est_band1 = sapply(Grid, function(x)(ker_est_neigh(x,Ttest,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
-      res_CV4 = sapply(Grid, function(t)(ker_estg(t,Ttest,Bopt_cv4 ))) #gaussian kernel estimator         
+      res_CV = sapply(Grid, function(t)(ker_estg(t,Ttest,Bopt_cv ))) #gaussian kernel estimator         
       MISE_nn[i]  =sum((est_band1-th_haz)^2)/length(th_haz)
       MISE_nn_0[i]= sum((est_band1[1]-th_haz[1])^2) 
-      MISE_cv[i]  = sum((res_CV4-th_haz)^2)/length(th_haz)
-      MISE_cv_0[i] = sum((res_CV4[1]-th_haz[1])^2) 
+      MISE_cv[i]  = sum((res_CV-th_haz)^2)/length(th_haz)
+      MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2) 
     }
     return(list('cv' = MISE_cv, 'cv_0'= MISE_cv_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
   })
