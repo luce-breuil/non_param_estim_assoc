@@ -4,7 +4,11 @@ This repository contains the code for the article *Non-parametric hazard rate es
 and minimax bandwidth choice.* by L. Breuil and S.Kaakai
 
 The file Kernel_estimation_article.R contains the functions used in the notebook Kernel_estimation_theory.ipynb, which generates all of the figures and data in the article. 
+
 The file times_exp contains the data used in the example and taken from
-Tricoire H, Rera M. A New, Discontinuous 2 Phases of Aging Model: Lessons from Drosophila melanogaster. PLoS One. 2015 Nov 3;10(11):e0141920. doi: 10.1371/journal.pone.0141920. PMID: 26528826; PMCID: PMC4631373. https://pubmed.ncbi.nlm.nih.gov/26528826/
+
+Tricoire H, Rera M. A New, Discontinuous 2 Phases of Aging Model: Lessons from Drosophila melanogaster. PLoS One. 2015 Nov 3;10(11):e0141920. doi: 10.1371/journal.pone.0141920. PMID: 26528826; PMCID: PMC4631373. https://
+pubmed.ncbi.nlm.nih.gov/26528826/
+
 The folder MISE contains the tables with the error values for each repetition of the estimator tests done in Kernel_estimation_theory.ipynb and used to compute the approximation of the MISE. We provide the tables as generating them is very long (several hours)
 but the code to generate them is also present in the notebook. 
