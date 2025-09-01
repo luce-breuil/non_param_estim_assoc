@@ -1,4 +1,5 @@
-#non_param_estim_assox
+# non_param_estim_assox
+
 This repository contains the code for the article *Non-parametric hazard rate estimation with associated kernels
 and minimax bandwidth choice.* by L. Breuil and S.Kaakai
 
