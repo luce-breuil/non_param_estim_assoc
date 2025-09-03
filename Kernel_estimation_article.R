@@ -124,13 +124,12 @@ sim_pop_simple <- function(a,b,c,init_size,n=200){
 #'@param init_size the population size
 #'@param n the time of simulation divided by 10
 #'@returns an array of n death times/events with hazard defined by text
-sim_pop_text <- function(a,b,c,text,init_size,n=200){
+sim_pop_text <- function(params, text,init_size,n=200){
   pop_init <- population(data.frame( birth = rep(0, init_size), 
                                      death = NA))
   death = mk_event_individual(type = 'death', 
                               intensity_code =text
   )
-  params =  list('a'=a,'b'=b,'c'=c) 
   birth_death <- mk_model(characteristics = get_characteristics(pop_init),
                           events = list(death),
                           parameters = params)
@@ -293,9 +292,9 @@ A = function(Grid,b,B,max,m,Ttest,kappa_2 = NULL, lambda = NULL, epsilon = NULL)
 #'@param lambda (optional) value of lambda
 #'@returns a list with three arrays : K, the estimated hazard rate on Grid 
 #', B, the chosen bandwidth for each point of Grid and T, the simulated sample
-minimax_pointwise <- function(a,b,c,text,m,Grid,B,seed,kappa_0 = NULL,lambda = NULL){
+minimax_pointwise <- function(param,text,m,Grid,B,seed,kappa_0 = NULL,lambda = NULL){
   set.seed(seed)
-  Ttest = sim_pop_text(a,b,c,text,m) #simulating population
+  Ttest = sim_pop_text(param,text,m) #simulating population
   max = max(sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest,B[1])))) #estimated
   #upper bound of hazard rate
   Kopt = c()
@@ -327,9 +326,9 @@ minimax_pointwise <- function(a,b,c,text,m,Grid,B,seed,kappa_0 = NULL,lambda = N
 #'@param epsilon (optional) value of epsilon
 #'@returns a list with three arrays : K, the estimated hazard rate on Grid 
 #', B, the chosen bandwidth for each point of Grid and T, the simulated sample
-minimax_global <- function(a,b,c,text,m,Grid,B,seed,kappa_2=NULL, lambda=NULL,epsilon=NULL){
+minimax_global <- function(param,text,m,Grid,B,seed,kappa_2=NULL, lambda=NULL,epsilon=NULL){
   set.seed(seed)
-  Ttest = sim_pop_text(a,b,c,text,m) #simulating population
+  Ttest = sim_pop_text(param,text,m) #simulating population
   max = max(sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest,B[1])))) #estimated 
   #upper bound of hazard rate
   C = sapply(B, function(b)(A(Grid,b,B,max,m,Ttest,kappa_2, lambda,epsilon) + V(Grid,b,B,max,m,kappa_2, lambda,epsilon)))
@@ -441,15 +440,13 @@ minimax_global_data <- function(Times, Grid,kappa_2=NULL, lambda=NULL,epsilon=NU
 #'@returns a list with 4 elements mx, mx_0, nn, nn_0 with the ISE value 
 #' and SE at 0 for the reps repetitions for each method
 MISE_approx_local <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,kappa_0 = NULL,lambda = NULL){
-  with(as.list(param),{
-    
     B1 = Bandwidth_set(m)
     MISE_mx = rep(0,reps) 
     MISE_nn = rep(0,reps) 
     MISE_mx_0 = rep(0,reps) 
     MISE_nn_0 = rep(0,reps) 
     for (i in 1:reps){
-      RES = minimax_pointwise(a1,b1,c1,hazard , m ,  Grid, B1,i,kappa_0, lambda)
+      RES = minimax_pointwise(param,hazard , m ,  Grid, B1,i,kappa_0, lambda)
       Kopt1 = RES$K #adaptive hazard estimator
       Bopt1 = RES$B #chosen bandwidth
       Ttest1 = RES$T #simulated data
@@ -460,7 +457,6 @@ MISE_approx_local <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,kappa_0 
       MISE_nn_0[i]= sum((est_band1[1]-th_haz[1])^2)              
     }
     return(list('mx' = MISE_mx, 'mx_0'= MISE_mx_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
-  })
 }
 
 #'Computes an empirical approximation of the MISE on a grid and at 0 (or the first point of the Grid)
@@ -479,14 +475,13 @@ MISE_approx_local <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,kappa_0 
 #'@returns a list with 4 elements mx_g, mx_g0, cv, cv_0 with the ISE value 
 #' and SE at 0 for the reps repetitions for each method
 MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=NULL, lambda=NULL,epsilon=NULL){
-  with(as.list(param),{
-    Bg4 = Bandwidth_set_global(m)
+    Bset = Bandwidth_set_global(m)
     MISE_mx_g = rep(0,reps)
     MISE_cv = rep(0,reps)
     MISE_mx_g0 = rep(0,reps)
     MISE_cv_0 = rep(0,reps)                
     for (i in 1:reps){ 
-      RES = minimax_global(a1,b1,c1,hazard , m ,  Grid, Bg4,i,kappa_2, lambda,epsilon)
+      RES = minimax_global(param,hazard , m ,  Grid, Bset,i,kappa_2, lambda,epsilon)
       Bopt_g= RES$B #chosen bandwidth
       Ttest_g = RES$T #simulated data
       CV =crossval(sort(Ttest_g),BW_CV,ker_est_gamma_c,0)
@@ -499,7 +494,6 @@ MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=
       MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2)    
     }
     return(list('mx_g' = MISE_mx_g, 'mx_g0'= MISE_mx_g0,'cv'=MISE_cv, 'cv_0'=MISE_cv_0))
-  })
 }
 
 
@@ -522,7 +516,7 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
     MISE_nn = rep(0,reps) 
     MISE_nn_0 = rep(0,reps) 
     for (i in 1:reps){
-      Ttest = sim_pop_simple(a1,b1,c1,m)
+      Ttest = sim_pop_text(param,hazard,m)
       CV =crossval(sort(Ttest),BW_CV,ker_estg,0)
       Bopt_cv = BW_CV[which.min(CV)]
       est_band1 = sapply(Grid, function(x)(ker_est_neigh(x,Ttest,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
