@@ -437,26 +437,27 @@ minimax_global_data <- function(Times, Grid,kappa_2=NULL, lambda=NULL,epsilon=NU
 #'@param kappa_0 (optional) value of kappa_0
 #'@param lambda (optional) value of lambda
 #'@param nneigh number of neighbours for nearest neighbour bandwidth 
-#'@returns a list with 4 elements mx, mx_0, nn, nn_0 with the ISE value 
+#'@returns a list with 4 elements mx, mx_0, nn, nn_0 with the SE value on the Grid
 #' and SE at 0 for the reps repetitions for each method
 MISE_approx_local <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,kappa_0 = NULL,lambda = NULL){
-    B1 = Bandwidth_set(m)
-    MISE_mx = rep(0,reps) 
-    MISE_nn = rep(0,reps) 
-    MISE_mx_0 = rep(0,reps) 
-    MISE_nn_0 = rep(0,reps) 
-    for (i in 1:reps){
-      RES = minimax_pointwise(param,hazard , m ,  Grid, B1,i,kappa_0, lambda)
-      Kopt1 = RES$K #adaptive hazard estimator
-      Bopt1 = RES$B #chosen bandwidth
-      Ttest1 = RES$T #simulated data
-      est_band1 = sapply(Grid, function(x)( ker_est_neigh(x,Ttest1,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
-      MISE_mx[i] = sum((Kopt1-th_haz)^2)/length(th_haz)
-      MISE_mx_0[i] =  sum((Kopt1[1]-th_haz[1])^2)
-      MISE_nn[i]  =sum((est_band1-th_haz)^2)/length(th_haz)
-      MISE_nn_0[i]= sum((est_band1[1]-th_haz[1])^2)              
-    }
-    return(list('mx' = MISE_mx, 'mx_0'= MISE_mx_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
+  B1 = Bandwidth_set(m)
+  m2 = length(Grid)
+  MISE_mx = matrix(0L, nrow = reps, ncol = m2)
+  MISE_nn = matrix(0L, nrow = reps, ncol = m2) 
+  MISE_mx_0 = matrix(0L, nrow = reps, ncol = m2)
+  MISE_nn_0 = matrix(0L, nrow = reps, ncol = m2)
+  for (i in 1:reps){
+    RES = minimax_pointwise(param,hazard , m ,  Grid, B1,i,kappa_0, lambda)
+    Kopt1 = RES$K #adaptive hazard estimator
+    Bopt1 = RES$B #chosen bandwidth
+    Ttest1 = RES$T #simulated data
+    est_band1 = sapply(Grid, function(x)( ker_est_neigh(x,Ttest1,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
+    MISE_mx[i,] = (Kopt1-th_haz)^2
+    MISE_mx_0[i,] =  (Kopt1[1]-th_haz[1])^2
+    MISE_nn[i,]  =(est_band1-th_haz)^2
+    MISE_nn_0[i,]= (est_band1[1]-th_haz[1])^2 
+  }
+  return(list('mx' = MISE_mx, 'mx_0'= MISE_mx_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
 }
 
 #'Computes an empirical approximation of the MISE on a grid and at 0 (or the first point of the Grid)
@@ -472,28 +473,29 @@ MISE_approx_local <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,kappa_0 
 #'@param lambda (optional) value of lambda
 #'@param epsilon (optional) value of epsilon
 #'@param BW_CV set of bandwidths to choose from for cross-validation
-#'@returns a list with 4 elements mx_g, mx_g0, cv, cv_0 with the ISE value 
+#'@returns a list with 4 elements mx_g, mx_g0, cv, cv_0 with the SE value on the Grid
 #' and SE at 0 for the reps repetitions for each method
 MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=NULL, lambda=NULL,epsilon=NULL){
-    Bset = Bandwidth_set_global(m)
-    MISE_mx_g = rep(0,reps)
-    MISE_cv = rep(0,reps)
-    MISE_mx_g0 = rep(0,reps)
-    MISE_cv_0 = rep(0,reps)                
-    for (i in 1:reps){ 
-      RES = minimax_global(param,hazard , m ,  Grid, Bset,i,kappa_2, lambda,epsilon)
-      Bopt_g= RES$B #chosen bandwidth
-      Ttest_g = RES$T #simulated data
-      CV =crossval(sort(Ttest_g),BW_CV,ker_est_gamma_c,0)
-      Bopt_cv = BW_CV[which.min(CV)]
-      res_adapt = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_g)))
-      res_CV = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_cv)))
-      MISE_mx_g[i] =  sum((res_adapt-th_haz)^2)/length(th_haz)
-      MISE_mx_g0[i] =   sum((res_adapt[1]-th_haz[1])^2)
-      MISE_cv[i]  = sum((res_CV-th_haz)^2)/length(th_haz)
-      MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2)    
-    }
-    return(list('mx_g' = MISE_mx_g, 'mx_g0'= MISE_mx_g0,'cv'=MISE_cv, 'cv_0'=MISE_cv_0))
+  Bset = Bandwidth_set_global(m)
+  m2 = length(Grid)
+  MISE_mx_g = matrix(0L, nrow = reps, ncol = m2)
+  MISE_cv = matrix(0L, nrow = reps, ncol = m2)
+  MISE_mx_g0 = matrix(0L, nrow = reps, ncol = m2)
+  MISE_cv_0 = matrix(0L, nrow = reps, ncol = m2)            
+  for (i in 1:reps){ 
+    RES = minimax_global(param,hazard , m ,  Grid, Bset,i,kappa_2, lambda,epsilon)
+    Bopt_g= RES$B #chosen bandwidth
+    Ttest_g = RES$T #simulated data
+    CV =crossval(sort(Ttest_g),BW_CV,ker_est_gamma_c,0)
+    Bopt_cv = BW_CV[which.min(CV)]
+    res_adapt = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_g)))
+    res_CV = sapply(Grid, function(t)(ker_est_gamma_c(t,Ttest_g,Bopt_cv)))
+    MISE_mx_g[i,] =  (res_adapt-th_haz)^2
+    MISE_mx_g0[i,] =   (res_adapt[1]-th_haz[1])^2
+    MISE_cv[i,]  = (res_CV-th_haz)^2
+    MISE_cv_0[i,] = (res_CV[1]-th_haz[1])^2  
+  }
+  return(list('mx_g' = MISE_mx_g, 'mx_g0'= MISE_mx_g0,'cv'=MISE_cv, 'cv_0'=MISE_cv_0))
 }
 
 
@@ -507,25 +509,25 @@ MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=
 #'@param Grid a grid on which to conduct estimations
 #'@param nneigh number of neighbours for nearest neighbour bandwidth 
 #'@param BW_CV set of bandwidths to choose from for cross-validation
-#'@returns a list with 4 elements  cv, cv_0, nn, nn_0 with the ISE value 
+#'@returns a list with 4 elements  cv, cv_0, nn, nn_0 with the SE value on the Grid
 #' and SE at 0 for the reps repetitions for each method
 MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV){
   with(as.list(param),{
-    MISE_cv = rep(0,reps)
-    MISE_cv_0 = rep(0,reps)  
-    MISE_nn = rep(0,reps) 
-    MISE_nn_0 = rep(0,reps) 
+    m2 = length(Grid)
+    MISE_cv = matrix(0L, nrow = reps, ncol = m2)
+    MISE_cv_0 = matrix(0L, nrow = reps, ncol = m2)  
+    MISE_nn = matrix(0L, nrow = reps, ncol = m2)
+    MISE_nn_0 = matrix(0L, nrow = reps, ncol = m2) 
     for (i in 1:reps){
       Ttest = sim_pop_text(param,hazard,m)
       CV =crossval(sort(Ttest),BW_CV,ker_estg,0)
       Bopt_cv = BW_CV[which.min(CV)]
       est_band1 = sapply(Grid, function(x)(ker_est_neigh(x,Ttest,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
       res_CV = sapply(Grid, function(t)(ker_estg(t,Ttest,Bopt_cv ))) #gaussian kernel estimator         
-      MISE_nn[i]  =sum((est_band1-th_haz)^2)/length(th_haz)
-      MISE_nn_0[i]= sum((est_band1[1]-th_haz[1])^2) 
-      MISE_cv[i]  = sum((res_CV-th_haz)^2)/length(th_haz)
-      MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2) 
-      write.csv('MISE_gauss_500')
+      MISE_nn[i,]  =(est_band1-th_haz)^2
+      MISE_nn_0[i,]= (est_band1[1]-th_haz[1])^2
+      MISE_cv[i,]  = (res_CV-th_haz)^2
+      MISE_cv_0[i,] = (res_CV[1]-th_haz[1])^2
     }
     return(list('cv' = MISE_cv, 'cv_0'= MISE_cv_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
   })
