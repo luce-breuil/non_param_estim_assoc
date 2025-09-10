@@ -525,6 +525,7 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
       MISE_nn_0[i]= sum((est_band1[1]-th_haz[1])^2) 
       MISE_cv[i]  = sum((res_CV-th_haz)^2)/length(th_haz)
       MISE_cv_0[i] = sum((res_CV[1]-th_haz[1])^2) 
+      write.csv('MISE_gauss_500')
     }
     return(list('cv' = MISE_cv, 'cv_0'= MISE_cv_0,'nn'=MISE_nn, 'nn_0'=MISE_nn_0))
   })
