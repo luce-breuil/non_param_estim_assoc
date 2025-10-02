@@ -476,7 +476,7 @@ MISE_approx_global <- function(m, reps ,param, hazard,th_haz,Grid,BW_CV,kappa_2=
   m2 = length(Grid)
   MISE_mx_g = matrix(0L, nrow = reps, ncol = m2)
   MISE_cv = matrix(0L, nrow = reps, ncol = m2)
-      pop_init <- population(data.frame( birth = rep(0, m), 
+pop_init <- population(data.frame( birth = rep(0, m), 
                                      death = NA))
 death <- mk_event_individual(type = 'death', 
                               intensity_code = hazard)
@@ -485,8 +485,7 @@ model <- mk_model(characteristics = get_characteristics(pop_init),
                           events = list(death),
                           parameters = param)
   for (i in 1:reps){ 
-   sim_out <- popsim(model = model, initial_population = pop_init,
-                    events_bounds = c('death' = 1),
+   sim_out <- popsim(model = model, initial_population = pop_init, events_bounds = c('death' = 1),
                     parameters = param,
                     time = 2000)
     data<- sim_out$population$death #simulated data
@@ -520,8 +519,19 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
     m2 = length(Grid)
     MISE_cv = matrix(0L, nrow = reps, ncol = m2)
     MISE_nn = matrix(0L, nrow = reps, ncol = m2)
+    pop_init <- population(data.frame( birth = rep(0, m), 
+                                     death = NA))
+    pop_init <- population(data.frame( birth = rep(0, m), 
+                                     death = NA))
+    death <- mk_event_individual(type = 'death', 
+                              intensity_code = hazard)
+
+    model <- mk_model(characteristics = get_characteristics(pop_init),
+                          events = list(death),
+                          parameters = param)
     for (i in 1:reps){
-      Ttest = sim_pop_text(param,hazard,m)
+       sim_out <- popsim(model = model, initial_population = pop_init, events_bounds = c('death' = 1), parameters = param, time = 2000)
+      Ttest = sim_out$population$death 
       CV =crossval(sort(Ttest),BW_CV,ker_estg,0)
       Bopt_cv = BW_CV[which.min(CV)]
       est_band1 = sapply(Grid, function(x)(ker_est_neigh(x,Ttest,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
