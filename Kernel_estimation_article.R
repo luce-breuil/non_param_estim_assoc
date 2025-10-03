@@ -449,7 +449,7 @@ model <- mk_model(characteristics = get_characteristics(pop_init),
     RES = minimax_pointwise(data, Grid, B1,kappa_0, lambda)
     Kopt1 = RES$K #adaptive hazard estimator
     Bopt1 = RES$B #chosen bandwidth
-    est_band1 = sapply(Grid, function(x)( ker_est_neigh(x,data,nneigh))) #nearest neighbour bandwidth gaussian kernel estimator  
+    est_band1 = sapply(Grid, function(x)( ker_est_neigh(x,data,nneigh))) #nearest neighbor bandwidth gaussian kernel estimator  
     MISE_mx[i,] = (Kopt1-th_haz)^2
     MISE_nn[i,]  =(est_band1-th_haz)^2
   }
@@ -542,3 +542,45 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
     return(list('cv' = MISE_cv,'nn'=MISE_nn))
   })
 }
+
+
+
+#'Computes an empirical approximation of the MISE on a grid and at 0 (or the first point of the Grid)
+#'for the lognormal ratio estimator
+#'@param m sample size
+#'@param reps number of repetitions to compute empirical MISE
+#'@param param named list of parameters for the hazard rate 
+#'@param hazard string of the form '{result= expression;}'
+#'@param th_haz theoretical hazard evaluated on Grid
+#'@param Grid a grid on which to conduct estimations
+#'@param b3 the bandwidth
+#'@returns a list with the SE value on the Grid for the reps repetitions 
+MISE_approx_lognormal <- function(m, reps ,param, hazard,th_haz,Grid,b3){
+
+pop_init <- population(data.frame( birth = rep(0, m), 
+                                   death = NA))
+death <- mk_event_individual(type = 'death', 
+                             intensity_code = hazard)
+model_death <- mk_model(characteristics = get_characteristics(pop_init),
+                        events = list(death),
+                        parameters = param)
+m2 = length(Grid)
+MISE_log = matrix(0L, nrow = reps, ncol = m2)
+for (i in 1:reps){
+  sim_out <- popsim(model = model_death,
+                    initial_population = pop_init,
+                    events_bounds = c(
+                      'death' = 1),
+                    parameters = param1,
+                    time = 200*10)
+  Ttest = sim_out$population$death
+  
+  est_log = sapply(Grid, function(x)(log_ker_dens(x,b3,Ttest))) #lognormal kernel estimator of density
+  Surv_log =1- sapply(Grid, function(x)(est_surv(x,b3,Ttest))) # empirical survival function for lognormal kernel ratio estimation
+  MISE_log[i,]  = (est_log/Surv_log-th_haz)^2
+}
+return(MISE_log)
+}
+
+
+
