@@ -316,14 +316,25 @@ minimax_pointwise <- function(Times,Grid,B,kappa_0 = NULL,lambda = NULL){
 #', B, the chosen bandwidth for each point of Grid and T, the simulated sample
 minimax_global <- function(Times,Grid,B,kappa_2=NULL, lambda=NULL,epsilon=NULL){
   m = length(Times)
+  B = sort(B)
+  Le = length(B)
   max = max(sapply(Grid, function(t)(ker_est_gamma_c(t,Times,B[1])))) #estimated 
   #upper bound of hazard rate
-  C = sapply(B, function(b)(A(Grid,b,B,max,m,Times,kappa_2, lambda,epsilon) + V(Grid,b,B,max,m,kappa_2, lambda,epsilon)))
+  Comp = matrix(0,Le,Le)
+  for (j in 1:Le){
+  for (i in 1:Le){
+    if(i >= j){inter = - V(Grid,B[i],B, max,m,kappa_2, lambda, epsilon )}
+    else{integrand = function(t)((ker_est_gamma_c(t,Times,B[i]) - ker_est_gamma_c(t,Times,B[j]))^2)
+    integrand = Vectorize(integrand)
+    inter = integrate(integrand,0, max(Grid),subdivisions=2000)$value - V(Grid,B[i],B, max,m,kappa_2, lambda, epsilon )}
+}
+    Comp[i,j] = inter}
+  C2 = apply(Comp, 2, function(x)(max(x)))
+  C2 = sapply(C2, function(x)(max(x,0)))
+  C =  sapply(1:Le, function(i)( C2[i] + V(Grid,B[i],B,max,m,kappa_2, lambda,epsilon)))
   bopt = B[which.min(C)] #global minimax bandwidth
   return(list('B'= bopt,'T' =Times))
 }
-
-
 
 
 #'Returns a set of bandwidth depending for adaptive bandwidth choice
