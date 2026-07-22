@@ -554,6 +554,40 @@ MISE_approx_gaussian <- function(m, reps ,param, hazard,th_haz,Grid,nneigh,BW_CV
   })
 }
 
+#'Computes an empirical approximation of the MISE on a grid and at 0 (or the first point of the Grid)
+#'for the local plugin bandwidth choice with the Epanechikov kernel estimator
+#'@param m sample size
+#'@param reps number of repetitions to compute empirical MISE
+#'@param param named list of parameters for the hazard rate 
+#'@param hazard string of the form '{result= expression;}'
+#'@param th_haz theoretical hazard evaluated on Grid
+#'@param Grid a grid on which to conduct estimations
+#'@returns a list with the SE value on the Grid
+#' for the reps repetitions for each method
+MISE_approx_plug <- function(m, reps ,param, hazard,th_haz,Grid){
+  with(as.list(param),{
+    m2 = length(Grid)
+    MISE_nn = matrix(0L, nrow = reps, ncol = m2)
+    pop_init <- population(data.frame( birth = rep(0, m), 
+                                       death = NA))
+    pop_init <- population(data.frame( birth = rep(0, m), 
+                                       death = NA))
+    death <- mk_event_individual(type = 'death', 
+                                 intensity_code = hazard)
+    
+    model <- mk_model(characteristics = get_characteristics(pop_init),
+                      events = list(death),
+                      parameters = param)
+    for (i in 1:reps){
+      sim_out <- popsim(model = model, initial_population = pop_init, events_bounds = c('death' = 1), parameters = param, time = 2000)
+      Ttest = sim_out$population$death 
+      est_band1 <- muhaz(Ttest, min.time = min(Grid), max.time = max(Grid), n.est.grid = length(Grid), bw.method="local",kern="epanechnikov")
+      MISE_nn[i,]  =(est_band1$haz.est-th_haz)^2
+    }
+    return(list('plug' = MISE_nn))
+  })
+}
+
 
 
 #'Computes an empirical approximation of the MISE on a grid and at 0 (or the first point of the Grid)
