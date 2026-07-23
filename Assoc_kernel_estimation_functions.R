@@ -582,7 +582,7 @@ MISE_approx_plug <- function(m, reps ,param, hazard,th_haz,Grid){
       sim_out <- popsim(model = model, initial_population = pop_init, events_bounds = c('death' = 1), parameters = param, time = 2000)
       Ttest = sim_out$population$death 
       est_band1 <- muhaz(Ttest, min.time = min(Grid), max.time = max(Grid), n.est.grid = length(Grid), bw.method="local",kern="epanechnikov")
-      MISE_nn[i,]  =(est_band1$haz.est-th_haz)^2
+      MISE_nn[i,]  = (est_band1$haz.est-th_haz)^2
     }
     return(list('plug' = MISE_nn))
   })
