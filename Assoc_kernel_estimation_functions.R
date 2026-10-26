@@ -84,6 +84,22 @@ ker_est_neigh <- function(t,X,k){
   expX = exp(-X^2/2)/(sqrt(2*pi))
   return(1/h*sum(1/SF*expX))
 }
+
+#' Gamma kernel estimator of hazard rate of jumping times in X with k-nearest
+#' neighbor bandwidth
+#' @param t point at which to evaluate kernel estimation
+#' @param X array of jumping times
+#' @param k number of neighbors for bandwidth
+#' @returns gamma kernel estimator with k-nearest neighbor bandwidth of hazard rate of jumping times X at t 
+ker_est_neigh_gam <- function(t,X,k){
+  X = X[!is.na(X)]
+  SF = length(X):1 #empirical survival function
+  dis = sort((X-t)^2)[k] #distance of the kth nearest neighbor
+  h = sqrt(dis)
+  return(ker_est_gamma_c(t,X,h))
+}
+
+
 #########Simulation function#############
 #'Returns the death time for a population of size init_size in a one phase model
 #'with an exponential hazard rate a+bexp(c*t)
@@ -460,7 +476,7 @@ model <- mk_model(characteristics = get_characteristics(pop_init),
     RES = minimax_pointwise(data, Grid, B1,kappa_0, lambda)
     Kopt1 = RES$K #adaptive hazard estimator
     Bopt1 = RES$B #chosen bandwidth
-    est_band1 = sapply(Grid, function(x)( ker_est_neigh(x,data,nneigh))) #nearest neighbor bandwidth gaussian kernel estimator  
+    est_band1 = sapply(Grid, function(x)( ker_est_neigh_gam(x,data,nneigh))) #nearest neighbor bandwidth gamma kernel estimator  
     MISE_mx[i,] = (Kopt1-th_haz)^2
     MISE_nn[i,]  =(est_band1-th_haz)^2
   }
